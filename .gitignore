@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+*.userprefs
+*.csproj.user
+.DS_Store
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# Secrets
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
