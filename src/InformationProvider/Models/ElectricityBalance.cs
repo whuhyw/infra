@@ -9,7 +9,7 @@ public record ElectricityBalanceResponse
     public UsageInfo TotalUsage { get; init; } = new();
     public string UpdatedAt { get; init; } = "";
 }
-
+ 
 public record BalanceInfo
 {
     public decimal Amount { get; init; }
