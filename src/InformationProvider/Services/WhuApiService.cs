@@ -1,29 +1,14 @@
-using System.Net.Http.Json;
-using System.Reflection;
-using System.Text;
-using Microsoft.Extensions.Options;
-using InformationProvider.Configuration;
 using InformationProvider.Models;
 
 namespace InformationProvider.Services;
 
 public class WhuApiService : IWhuApiService
 {
-    private readonly WhuApiOptions _options;
-    private readonly ITokenService _tokenService;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<WhuApiService> _logger;
+    private readonly WhuApiHttpClient _client;
 
-    public WhuApiService(
-        IOptions<WhuApiOptions> options,
-        ITokenService tokenService,
-        IHttpClientFactory httpClientFactory,
-        ILogger<WhuApiService> logger)
+    public WhuApiService(WhuApiHttpClient client)
     {
-        _options = options.Value;
-        _tokenService = tokenService;
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
+        _client = client;
     }
 
     public async Task<ElectricityBalanceResponse> GetBalanceAsync(
@@ -31,7 +16,7 @@ public class WhuApiService : IWhuApiService
     {
         var (roomName, meterId) = await GetMeterIdAsync(roomId, ct);
 
-        var reserve = await CallAsync<WhuReserveData>(
+        var reserve = await _client.GetDataAsync<WhuReserveData>(
             "/v3/XINTF/GetReserve", new { MeterID = meterId }, ct);
 
         return new ElectricityBalanceResponse
@@ -59,7 +44,7 @@ public class WhuApiService : IWhuApiService
         var (roomName, meterId) = await GetMeterIdAsync(roomId, ct);
         var dateStr = $"{date.Year}-{date.Month}-{date.Day}";
 
-        var dayVal = await CallAsync<WhuDayValueData>(
+        var dayVal = await _client.GetDataAsync<WhuDayValueData>(
             "/v3/XINTF/GetMeterDayValue",
             new { MeterID = meterId, startDate = dateStr, endDate = dateStr },
             ct);
@@ -90,7 +75,7 @@ public class WhuApiService : IWhuApiService
     private async Task<(string roomName, string meterId)> GetMeterIdAsync(
         string roomId, CancellationToken ct)
     {
-        var roomInfo = await CallAsync<WhuRoomMeterData>(
+        var roomInfo = await _client.GetDataAsync<WhuRoomMeterData>(
             "/v3/XINTF/GetRoomMeterInfo", new { RoomID = roomId }, ct);
 
         if (roomInfo.Result != 0)
@@ -101,59 +86,5 @@ public class WhuApiService : IWhuApiService
             ?? throw new InvalidOperationException("该房间未绑定电表");
 
         return (roomInfo.roomInfo?.RoomEntierName ?? "", meter.meterId);
-    }
-
-    private async Task<T> CallAsync<T>(
-        string path, object? queryParams, CancellationToken ct) where T : class
-    {
-        var token = await _tokenService.GetAccessTokenAsync(ct);
-        var url = BuildUrl(path, queryParams);
-
-        var client = _httpClientFactory.CreateClient();
-        SetDefaultHeaders(client);
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
-
-        var response = await client.GetAsync(url, ct);
-        response.EnsureSuccessStatusCode();
-
-        var wrapper = await response.Content
-            .ReadFromJsonAsync<WhuApiResponse<T>>(ct);
-
-        if (wrapper?.Code != 0 || wrapper.Data is null)
-            throw new InvalidOperationException(
-                $"API error [{path}]: {wrapper?.Mess}");
-
-        return wrapper.Data;
-    }
-
-    private string BuildUrl(string path, object? queryParams)
-    {
-        var url = $"{_options.BaseUrl}{path}";
-        if (queryParams is null) return url;
-
-        var pairs = new List<string>();
-        foreach (var prop in queryParams.GetType().GetProperties(
-                     BindingFlags.Public | BindingFlags.Instance))
-        {
-            var value = prop.GetValue(queryParams)?.ToString();
-            if (value is not null)
-                pairs.Add($"{prop.Name}={Uri.EscapeDataString(value)}");
-        }
-
-        return url + "?" + string.Join("&", pairs);
-    }
-
-    private static void SetDefaultHeaders(HttpClient client)
-    {
-        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Accept",
-            "application/json, text/plain, */*");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language",
-            "zh-CN,zh;q=0.9");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Referer",
-            "http://zwhqbsd.whu.edu.cn/MobilePayWeb/?t=20260123");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Origin",
-            "http://zwhqbsd.whu.edu.cn");
     }
 }

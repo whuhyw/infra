@@ -18,6 +18,8 @@ builder.Services.AddSingleton<ISm2CryptoService>(
     _ => new Sm2CryptoService(whuApiOptions.Sm2PublicKey));
 
 builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddSingleton<WhuApiTransport>();
+builder.Services.AddSingleton<WhuApiHttpClient>();
 builder.Services.AddScoped<IWhuApiService, WhuApiService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
 
