@@ -4,6 +4,8 @@ namespace InformationProvider.Services;
 
 public interface IWhuApiService
 {
-    Task<ElectricityBalanceResponse> GetBalanceAsync(string roomId, CancellationToken ct = default);
-    Task<DailyUsageResponse> GetDailyUsageAsync(string roomId, DateTime date, CancellationToken ct = default);
+    Task<RoomMeterInfo> GetRoomMeterInfoAsync(string roomId, CancellationToken ct = default);
+    Task<ReserveInfo> GetReserveAsync(string meterId, CancellationToken ct = default);
+    Task<IReadOnlyList<DayUsageItem>> GetMeterDayValueAsync(
+        string meterId, DateOnly startDate, DateOnly endDate, CancellationToken ct = default);
 }
