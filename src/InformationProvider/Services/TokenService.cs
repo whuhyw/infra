@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,7 +11,7 @@ public class TokenService : ITokenService, IDisposable
 {
     private readonly WhuApiOptions _options;
     private readonly ISm2CryptoService _sm2;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly WhuApiTransport _transport;
     private readonly ILogger<TokenService> _logger;
 
     private string? _accessToken;
@@ -23,12 +22,12 @@ public class TokenService : ITokenService, IDisposable
     public TokenService(
         IOptions<WhuApiOptions> options,
         ISm2CryptoService sm2Crypto,
-        IHttpClientFactory httpClientFactory,
+        WhuApiTransport transport,
         ILogger<TokenService> logger)
     {
         _options = options.Value;
         _sm2 = sm2Crypto;
-        _httpClientFactory = httpClientFactory;
+        _transport = transport;
         _logger = logger;
     }
 
@@ -62,10 +61,7 @@ public class TokenService : ITokenService, IDisposable
         var url = $"{_options.BaseUrl}/v3/XINTFLg/SpecialSignIn" +
                   $"?p1={_options.AccountId}&p2={p2}&p3={_options.SysId}&t={ts}&s={s}";
 
-        var client = _httpClientFactory.CreateClient();
-        SetDefaultHeaders(client);
-
-        var response = await client.GetFromJsonAsync<WhuApiResponse<WhuSignInData>>(url, ct);
+        var response = await _transport.GetRawAsync<WhuSignInData>(url, ct);
 
         if (response?.Code != 0 || response.Data?.Result != 0)
         {
@@ -111,20 +107,6 @@ public class TokenService : ITokenService, IDisposable
     {
         var bytes = MD5.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes);
-    }
-
-    private static void SetDefaultHeaders(HttpClient client)
-    {
-        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Accept",
-            "application/json, text/plain, */*");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language",
-            "zh-CN,zh;q=0.9");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Referer",
-            "http://zwhqbsd.whu.edu.cn/MobilePayWeb/?t=20260123");
-        client.DefaultRequestHeaders.TryAddWithoutValidation("Origin",
-            "http://zwhqbsd.whu.edu.cn");
     }
 
     public void Dispose() => _lock.Dispose();
