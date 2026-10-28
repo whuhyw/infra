@@ -1,0 +1,24 @@
+[Unit]
+Description=Infrastructure service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=infra-service
+Group=infra-service
+EnvironmentFile=/etc/infra-service.env
+Environment=BIND_ADDRESS=0.0.0.0:5051
+Environment=DATABASE_URL=sqlite:///var/lib/infra-service/electricity.db
+WorkingDirectory=/var/lib/infra-service
+ExecStart=/usr/local/bin/infra-service
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/infra-service
+
+[Install]
+WantedBy=multi-user.target

@@ -16,7 +16,7 @@ use chrono_tz::Asia::Shanghai;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, RwLock, Semaphore};
 
-use crate::{
+use super::{
     config::AppConfig,
     models::parse_api_date,
     ports::{RoomDirectory, WhuGateway},
@@ -517,7 +517,7 @@ async fn trend(
             .trend("daily_balance_records", "balance", &room_id, start, end),
     )
     .map_err(internal)?;
-    let convert = |rows: Vec<crate::store::TrendRow>| {
+    let convert = |rows: Vec<super::store::TrendRow>| {
         rows.into_iter()
             .map(|row| TrendValue {
                 date: row.date,
@@ -739,8 +739,7 @@ mod tests {
     use chrono::Utc;
     use tower::ServiceExt;
 
-    use super::{AppState, router, today};
-    use crate::{
+    use super::super::{
         WhuApiOptions,
         config::AppConfig,
         models::{
@@ -749,6 +748,7 @@ mod tests {
         ports::{RoomDirectory, WhuGateway},
         store::Store,
     };
+    use super::{AppState, router, today};
 
     struct FakeWhu;
 

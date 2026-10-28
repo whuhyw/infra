@@ -8,20 +8,20 @@
 
 ```sh
 cargo build --locked --release
-sudo useradd --system --home-dir /var/lib/information-provider --create-home information-provider
-sudo install -m 0755 target/release/information-provider-whu /usr/local/bin/information-provider
-sudo install -m 0644 deploy/information-provider.service /etc/systemd/system/information-provider.service
-sudo install -d -o information-provider -g information-provider /var/lib/information-provider
-sudo install -m 0600 deploy/information-provider.env.example /etc/information-provider.env
-# 编辑 /etc/information-provider.env，填入 WHU 账号和密码
+sudo useradd --system --home-dir /var/lib/infra-service --create-home infra-service
+sudo install -m 0755 target/release/infra-service /usr/local/bin/infra-service
+sudo install -m 0644 deploy/infra-service.service /etc/systemd/system/infra-service.service
+sudo install -d -o infra-service -g infra-service /var/lib/infra-service
+sudo install -m 0600 deploy/infra-service.env.example /etc/infra-service.env
+# 环境文件可以保持默认值；需要覆盖 WHU 凭据时再编辑
 sudo systemctl daemon-reload
-sudo systemctl enable --now information-provider
+sudo systemctl enable --now infra-service
 ```
 
-服务运行用户为 `information-provider`，SQLite 数据库固定放在 `/var/lib/information-provider/electricity.db`。查看服务日志：
+服务运行用户为 `infra-service`，SQLite 数据库固定放在 `/var/lib/infra-service/electricity.db`。查看服务日志：
 
 ```sh
-sudo journalctl -u information-provider -f
+sudo journalctl -u infra-service -f
 ```
 
 ## 配置
@@ -44,11 +44,11 @@ sudo journalctl -u information-provider -f
 
 ## 数据持久化
 
-- SQLite 数据库放在 `/var/lib/information-provider/electricity.db`
+- SQLite 数据库放在 `/var/lib/infra-service/electricity.db`
 - 服务使用 WAL 模式；不要在服务运行时只复制主数据库文件，应使用 SQLite 的在线备份命令：
 
   ```sh
-  sqlite3 /var/lib/information-provider/electricity.db ".backup '/var/lib/information-provider/electricity-backup.db'"
+  sqlite3 /var/lib/infra-service/electricity.db ".backup '/var/lib/infra-service/electricity-backup.db'"
   ```
 - 服务启动时自动执行 `migrations/` 中的 sqlx migrations
 - SQLite 使用 WAL 模式；当前部署模型要求单实例

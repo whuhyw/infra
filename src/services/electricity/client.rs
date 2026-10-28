@@ -2,9 +2,9 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
 
-use crate::models::WhuApiResponse;
+use super::models::WhuApiResponse;
+use super::{token::TokenService, transport::WhuApiTransport};
 use crate::{Error, Result, WhuApiOptions};
-use crate::{token::TokenService, transport::WhuApiTransport};
 
 #[derive(Clone)]
 pub struct WhuApiClient {

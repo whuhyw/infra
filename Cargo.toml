@@ -1,5 +1,5 @@
 [package]
-name = "information-provider-whu"
+name = "infra-service"
 version = "0.1.0"
 edition = "2024"
 

@@ -3,7 +3,7 @@ use chrono_tz::Asia::Shanghai;
 use futures::{StreamExt, stream};
 use tokio::time;
 
-use crate::{api::AppState, models::parse_api_date, store::Subscription};
+use super::{api::AppState, models::parse_api_date, store::Subscription};
 
 pub(crate) async fn run(state: AppState) {
     loop {
@@ -56,9 +56,9 @@ fn duration_until_next_run(hour: u32, minute: u32) -> std::time::Duration {
 }
 
 async fn update_until_success(state: AppState, subscription: Subscription) {
-    let yesterday = crate::api::scheduled_today()
+    let yesterday = super::api::scheduled_today()
         .pred_opt()
-        .unwrap_or_else(crate::api::scheduled_today);
+        .unwrap_or_else(super::api::scheduled_today);
     loop {
         let result = async {
             let usage = state
@@ -84,7 +84,7 @@ async fn update_until_success(state: AppState, subscription: Subscription) {
                 .store
                 .upsert_balance(
                     &subscription.room_id,
-                    &crate::api::scheduled_today().to_string(),
+                    &super::api::scheduled_today().to_string(),
                     reserve.balance,
                 )
                 .await?;

@@ -1,10 +1,10 @@
 use serde::Serialize;
 
-use crate::Result;
-use crate::client::WhuApiClient;
-use crate::models::{
+use super::client::WhuApiClient;
+use super::models::{
     ArchitectureData, ArchitectureSummary, AreaData, AreaSummary, RoomListData, RoomSummary,
 };
+use crate::Result;
 
 pub struct RoomService {
     client: WhuApiClient,

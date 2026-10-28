@@ -1,15 +1,15 @@
-# InformationProvider（Rust）
+# Infra Service（Rust）
 
-本服务以 Rust 重实现仓库中已经存在的 WHU API 封装，并补齐文档规划的 HTTP API、SQLite 缓存、订阅历史回填、每日更新、手动刷新、限频和健康检查。
+本服务以 Rust 实现 infra 后端；当前包含 WHU 电费查询模块，以及 HTTP API、SQLite 缓存、订阅历史回填、每日更新、手动刷新、限频和健康检查。
 
 ## 构建与运行
 
 ```sh
 cargo build --locked --release
-./target/release/information-provider-whu
+./target/release/infra-service
 ```
 
-运行时必须设置 WHU 账号环境变量。服务默认监听 `0.0.0.0:5051`，数据库为当前目录下的 `electricity.db`，启动时自动运行 `migrations/` 中的 sqlx migrations。树莓派部署应在树莓派上构建，或交叉编译到对应的 ARM target；不同型号可能使用 32 位或 64 位系统。
+服务默认监听 `0.0.0.0:5051`，数据库为当前目录下的 `electricity.db`，启动时自动运行 `migrations/` 中的 sqlx migrations。WHU 公开凭据已设为默认值，也可通过环境变量覆盖。树莓派部署应在树莓派上构建，或交叉编译到对应的 ARM target；不同型号可能使用 32 位或 64 位系统。
 
 ## 配置
 

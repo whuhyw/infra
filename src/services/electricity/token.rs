@@ -3,10 +3,10 @@ use md5::{Digest, Md5};
 use serde::Serialize;
 use tokio::sync::Mutex;
 
-use crate::models::{SignInData, WhuApiResponse};
+use super::models::{SignInData, WhuApiResponse};
 use crate::{Error, Result, WhuApiOptions};
 
-use crate::{crypto::Sm2CryptoService, transport::WhuApiTransport};
+use super::{crypto::Sm2CryptoService, transport::WhuApiTransport};
 
 #[derive(Serialize)]
 struct SignInQuery<'a> {
