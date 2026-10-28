@@ -1,0 +1,24 @@
+[Unit]
+Description=InformationProvider WHU electricity API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=information-provider
+Group=information-provider
+EnvironmentFile=/etc/information-provider.env
+Environment=BIND_ADDRESS=0.0.0.0:5051
+Environment=DATABASE_URL=sqlite:///var/lib/information-provider/electricity.db
+WorkingDirectory=/var/lib/information-provider
+ExecStart=/usr/local/bin/information-provider
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/information-provider
+
+[Install]
+WantedBy=multi-user.target

@@ -1,11 +1,5 @@
-# .NET
-bin/
-obj/
-*.user
-*.suo
-*.sln.docstates
-*.userprefs
-*.csproj.user
+/target/
+*.db
 .DS_Store
 
 # IDE
@@ -13,8 +7,3 @@ obj/
 .vscode/
 .idea/
 *.swp
-
-# Secrets
-appsettings.Local.json
-appsettings.*.Local.json
-secrets.json
