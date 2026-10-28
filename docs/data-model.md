@@ -66,6 +66,21 @@
 **唯一索引**: `(RoomId, Date)`
 **用途**: 供余额趋势图使用。
 
+### BackfillJob
+
+订阅后异步回填的持久化任务，每个房间最多一条。
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| Id | INTEGER | PK AUTOINCREMENT | 自增主键 |
+| RoomId | TEXT | UNIQUE, FK → Subscription | 房间号 |
+| Status | TEXT | NOT NULL | `pending`、`running`、`completed` 或 `failed` |
+| StartedAt | TEXT | NULL | 首次开始时间 |
+| UpdatedAt | TEXT | NOT NULL | 最近状态更新时间 |
+| Error | TEXT | NULL | 失败原因 |
+
+任务状态供 `GET /api/rooms/{roomId}/backfill` 查询；进程重启后，未完成任务会重新排队。
+
 ## 数据流
 
 ```

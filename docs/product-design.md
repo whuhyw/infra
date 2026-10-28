@@ -23,8 +23,8 @@ InformationProvider 是武汉大学校园电费信息查询系统的中间层服
 4. QQ 机器人调用 GET /api/areas → GET /api/areas/{id}/buildings → GET /api/buildings/{id}/rooms?floor=3
    （获取房间 ID 对应关系）
 5. QQ 机器人调用 POST /api/rooms { "roomId": "123456" }
-6. 系统回填所有历史数据（耗时数秒）
-7. QQ 机器人: "订阅成功！当前余额: 50.75 元，昨日用电: 12.5 度"
+6. 系统返回 202，并在后台回填历史数据；QQ 机器人轮询 GET /api/rooms/123456/backfill
+7. 回填完成后 QQ 机器人查询余额和最新用量并回复用户
 ```
 
 ### 日常查询

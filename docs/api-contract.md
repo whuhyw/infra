@@ -80,14 +80,18 @@ POST /api/rooms
 }
 ```
 
-响应 `200 OK`：
+响应 `202 Accepted`：
 ```json
 {
     "roomId": "123456",
     "roomName": "枫园14舍-316",
-    "subscribedAt": "2026-07-29T10:00:00Z"
+    "subscribedAt": "2026-07-29T10:00:00Z",
+    "balance": 50.75,
+    "backfillStatus": "pending"
 }
 ```
+
+响应头 `Location` 指向 `/api/rooms/{roomId}/backfill`。当前余额立即查询并写入数据库；历史用量回填在后台异步执行。客户端应轮询任务状态，状态为 `completed` 后再查询完整历史数据。
 
 响应 `409 Conflict`（已订阅）：
 ```json
@@ -98,8 +102,29 @@ POST /api/rooms
 
 **说明**：
 - 触发回填：从昨日开始按 100 天分块批量回溯 `GetMeterDayValue`，直到 API 返回空
-- 回填完成后自动调用一次 `GetReserve` 记录当前余额
-- 回填期间接口保持同步等待（通常 1-3 秒）
+- 订阅时立即调用 `GetReserve` 记录初始余额；回填完成后再次刷新余额快照
+- 回填任务持久化；服务重启后会恢复未完成任务
+
+---
+
+## 查询回填状态
+
+```
+GET /api/rooms/{roomId}/backfill
+```
+
+响应 `200 OK`：
+```json
+{
+    "roomId": "123456",
+    "status": "running",
+    "startedAt": "2026-07-29T10:00:00Z",
+    "updatedAt": "2026-07-29T10:01:00Z",
+    "error": null
+}
+```
+
+`status` 为 `pending`、`running`、`completed` 或 `failed`。房间没有订阅或回填记录时返回 `404`。
 
 ---
 
@@ -226,6 +251,8 @@ POST /api/rooms/{roomId}/refresh
 }
 ```
 
+当天用量尚未由 WHU 返回时，刷新响应中的 `usage` 为 `null`，余额仍会更新。
+
 响应 `429 Too Many Requests`：
 ```json
 {
@@ -261,8 +288,11 @@ HTTP 状态码：
 | 状态码 | 含义 |
 |--------|------|
 | 200 | 成功 |
+| 202 | 请求已接受，异步回填任务已创建 |
 | 400 | 请求参数错误（日期格式错误等） |
 | 404 | 数据不存在 |
 | 409 | 资源冲突（如重复订阅） |
 | 429 | 超过频率限制 |
+| 500 | 本地数据库或内部错误 |
+| 502 | WHU 上游服务调用失败 |
 | 503 | 功能不可用（如刷新功能已关闭） |

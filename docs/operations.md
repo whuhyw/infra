@@ -2,72 +2,62 @@
 
 ## 部署
 
-### Docker
+### 树莓派 systemd 部署
 
-```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-WORKDIR /app
-EXPOSE 5051
+先在树莓派上安装 Rust 工具链和编译依赖，然后在仓库根目录构建 release 二进制。这样产物会与树莓派当前操作系统和 CPU 架构匹配。
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
-COPY ["src/InformationProvider/InformationProvider.csproj", "InformationProvider/"]
-RUN dotnet restore "InformationProvider/InformationProvider.csproj"
-COPY src/ .
-WORKDIR "/src/InformationProvider"
-RUN dotnet publish -c Release -o /app/publish
-
-FROM base AS final
-WORKDIR /app
-COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "InformationProvider.dll"]
+```sh
+cargo build --locked --release
+sudo useradd --system --home-dir /var/lib/information-provider --create-home information-provider
+sudo install -m 0755 target/release/information-provider-whu /usr/local/bin/information-provider
+sudo install -m 0644 deploy/information-provider.service /etc/systemd/system/information-provider.service
+sudo install -d -o information-provider -g information-provider /var/lib/information-provider
+sudo install -m 0600 deploy/information-provider.env.example /etc/information-provider.env
+# 编辑 /etc/information-provider.env，填入 WHU 账号和密码
+sudo systemctl daemon-reload
+sudo systemctl enable --now information-provider
 ```
 
-### docker-compose
+服务运行用户为 `information-provider`，SQLite 数据库固定放在 `/var/lib/information-provider/electricity.db`。查看服务日志：
 
-```yaml
-version: "3.8"
-services:
-  information-provider:
-    build: .
-    ports:
-      - "5051:5051"
-    volumes:
-      - ./data:/app/data  # 持久化 SQLite 文件
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:5051
-      - ConnectionStrings__Default=Data Source=data/electricity.db
-    restart: unless-stopped
+```sh
+sudo journalctl -u information-provider -f
 ```
 
 ## 配置
 
-所有配置通过 `appsettings.json` + 环境变量覆盖：
+服务从环境变量读取配置：
 
 | 环境变量 | 说明 | 默认值 |
 |----------|------|--------|
-| `WhuApi__AccountId` | WHU API 账号 | （必填） |
-| `WhuApi__AccountPass` | WHU API 密码 | （必填） |
-| `ConnectionStrings__Default` | SQLite 连接串 | `Data Source=electricity.db` |
+| `BIND_ADDRESS` | HTTP 监听地址 | `0.0.0.0:5051` |
+| `DATABASE_URL` | sqlx SQLite 连接 URL | `sqlite://electricity.db` |
+| `WhuApi__AccountId` | WHU API 登录账号 | `ph` |
+| `WhuApi__AccountPass` | WHU API 登录密码 | `phAPI` |
 | `RateLimiting__QueryInterval` | 查询限频间隔 | `01:00:00` |
 | `RateLimiting__RefreshInterval` | 刷新限频间隔 | `00:30:00` |
 | `RateLimiting__RefreshEnabled` | 是否启用刷新 | `true` |
 | `ScheduledTask__RunTime` | 定时任务执行时间 | `02:00` |
 | `ScheduledTask__RetryInterval` | 失败重试间隔 | `00:15:00` |
 | `ScheduledTask__MaxConcurrent` | 最大并发房间数 | `5` |
+| `Backfill__ChunkSizeDays` | 每个历史回填请求的日期跨度 | `100` |
 
 ## 数据持久化
 
-- SQLite 文件默认生成在容器工作目录
-- 建议挂载 volume 到 `./data/` 目录
-- `.gitignore` 应排除 `*.db` 和 `data/` 目录
+- SQLite 数据库放在 `/var/lib/information-provider/electricity.db`
+- 服务使用 WAL 模式；不要在服务运行时只复制主数据库文件，应使用 SQLite 的在线备份命令：
+
+  ```sh
+  sqlite3 /var/lib/information-provider/electricity.db ".backup '/var/lib/information-provider/electricity-backup.db'"
+  ```
+- 服务启动时自动执行 `migrations/` 中的 sqlx migrations
+- SQLite 使用 WAL 模式；当前部署模型要求单实例
 
 ## 监控
 
 ### 日志
 
-- 使用 ASP.NET Core 内置 `ILogger`
+- 使用 `tracing` 结构化日志
 - 结构化日志输出到 stdout
 - 关键日志事件：
   - 定时任务开始/结束（含处理房间数）
@@ -93,9 +83,8 @@ GET /health
 
 ## 备份
 
-- 定期拷贝 `electricity.db` 文件即可完成备份
+- 定期使用 SQLite `.backup` 命令备份数据库
 - 备份周期建议：每日
-- 使用 `sqlite3 electricity.db .backup backup.db` 做在线备份（SQLite 支持 WAL 模式热备）
 
 ## 常见问题
 

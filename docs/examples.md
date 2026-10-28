@@ -12,13 +12,20 @@ curl -X POST http://localhost:5051/api/rooms \
   -d '{"roomId": "314"}'
 ```
 
-响应：
+响应 `202 Accepted`：
 ```json
 {
     "roomId": "314",
     "roomName": "枫园14舍-316",
-    "subscribedAt": "2026-07-29T10:00:00Z"
+    "subscribedAt": "2026-07-29T10:00:00Z",
+    "balance": 50.75,
+    "backfillStatus": "pending"
 }
+```
+
+查询回填状态：
+```bash
+curl http://localhost:5051/api/rooms/314/backfill
 ```
 
 重复订阅：
